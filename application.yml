@@ -1,0 +1,11 @@
+bank:
+  zone: America/Lima
+
+security:
+  enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
