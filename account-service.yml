@@ -9,7 +9,7 @@ spring:
 bank:
   clients:
     customer-service:
-      base-url: http://localhost:8081
+      base-url: http://localhost:8081/api/v1
 
 resilience4j:
   circuitbreaker:
