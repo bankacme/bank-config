@@ -1,0 +1,19 @@
+server:
+  port: 8761
+
+eureka:
+  client:
+    # Una sola instancia, sin pares: no se registra a sí misma ni lee su propio registro.
+    register-with-eureka: false
+    fetch-registry: false
+    # application.yml activa el transporte WebClient para los servicios WebFlux; este servidor es
+    # servlet (sin WebClient en el classpath) y con true no arrancaría.
+    webclient:
+      enabled: false
+  server:
+    # Solo para el demo: con una instancia y arranques/paradas frecuentes, la autopreservación
+    # dejaría instancias muertas en el panel.
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 5000
+    response-cache-update-interval-ms: 5000
+    wait-time-in-ms-when-sync-empty: 0
