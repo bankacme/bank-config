@@ -5,3 +5,45 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/bank_credit?directConnection=true
+
+bank:
+  clients:
+    customer-service:
+      base-url: http://localhost:8081/api/v1
+    transaction-service:
+      base-url: http://localhost:8084/api/v1
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      customer-service:
+        sliding-window-size: 4
+        minimum-number-of-calls: 4
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 2
+      transaction-service:
+        sliding-window-size: 4
+        minimum-number-of-calls: 4
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 2
+  timelimiter:
+    instances:
+      customer-service:
+        timeout-duration: 2s
+        cancel-running-future: true
+      transaction-service:
+        timeout-duration: 2s
+        cancel-running-future: true
+
+# data-model §8. credit.demo-mode=true en el entorno de demo (permite vencimientos pasados).
+credit:
+  demo-mode: true
+  card:
+    payment-term-days: 30
+  overdue:
+    cron: "0 0 1 * * *"
+  recorder:
+    pending-minutes: 2
+    cron: "0 * * * * *"
