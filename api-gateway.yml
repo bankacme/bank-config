@@ -1,0 +1,163 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      # Spring Cloud 2025.0: el prefijo es spring.cloud.gateway.server.webflux (el antiguo
+      # spring.cloud.gateway.* ya no se lee sin spring-boot-properties-migrator).
+      server:
+        webflux:
+          # Solo rutas explícitas: lo que no está listado responde 404.
+          discovery:
+            locator:
+              enabled: false
+          httpclient:
+            connect-timeout: 1000
+            # Tope del cliente HTTP: nunca antes que el TimeLimiter de 2 s.
+            response-timeout: 3s
+          routes:
+            # --- 3.1 Bloqueo de endpoints internos (x-gateway-internal), antes que las generales ---
+            - id: deny-account-movements
+              uri: forward:/denied
+              order: -10
+              predicates:
+                - Path=/api/v1/accounts/*/movements/**
+            - id: deny-transaction-records
+              uri: forward:/denied
+              order: -10
+              predicates:
+                - Path=/api/v1/transactions/records
+
+            # --- 3.2 Rutas generales: prefijo completo (no se quita /api/v1), breaker de 2 s ---
+            - id: auth-service
+              uri: lb://auth-service
+              order: 10
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: auth-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: auth-jwks
+              uri: lb://auth-service
+              order: 10
+              predicates:
+                - Path=/.well-known/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: auth-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: customer-service
+              uri: lb://customer-service
+              order: 10
+              predicates:
+                - Path=/api/v1/customers/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: customer-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: account-service
+              uri: lb://account-service
+              order: 10
+              predicates:
+                - Path=/api/v1/accounts/**,/api/v1/account-conditions/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: account-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: credit-service
+              uri: lb://credit-service
+              order: 10
+              predicates:
+                - Path=/api/v1/credits/**,/api/v1/credit-cards/**,/api/v1/overdue-checks/**,/api/v1/credit-recovery-runs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: credit-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: transaction-service
+              uri: lb://transaction-service
+              order: 10
+              predicates:
+                - Path=/api/v1/deposits/**,/api/v1/withdrawals/**,/api/v1/transfers/**,/api/v1/transactions/**,/api/v1/products/**,/api/v1/transaction-recovery-runs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: transaction-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: report-service
+              uri: lb://report-service
+              order: 10
+              predicates:
+                - Path=/api/v1/reports/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: report-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: debit-service
+              uri: lb://debit-service
+              order: 10
+              predicates:
+                - Path=/api/v1/debit-cards/**,/api/v1/debit-payment-recovery-runs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: debit-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+            - id: yanki-service
+              uri: lb://yanki-service
+              order: 10
+              predicates:
+                - Path=/api/v1/wallets/**,/api/v1/wallet-payment-recovery-runs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: yanki-service
+                    fallbackUri: forward:/fallback
+                    # Estas respuestas cuentan como fallo y van al fallback; los 4xx y el 202 no.
+                    statusCodes: [500, 502, 503, 504]
+    loadbalancer:
+      # Se entera pronto de altas y bajas en Eureka.
+      cache:
+        ttl: 5s
+
+# Un circuit breaker por servicio (el nombre de la ruta); todos toman la configuración default.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    configs:
+      default:
+        # RNF-18: 2 s en todas las rutas, sin excepciones.
+        timeout-duration: 2s
+        cancel-running-future: true
