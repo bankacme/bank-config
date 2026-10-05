@@ -15,6 +15,17 @@ management:
     redis:
       enabled: false
 
+# Llamadas entre servicios por nombre (P2, paso 2.3): sin reintentos del balanceador; el circuit
+# breaker y el TimeLimiter de 2 s de cada cliente deciden, y las operaciones de dinero se repiten
+# por operationId.
+spring:
+  cloud:
+    loadbalancer:
+      retry:
+        enabled: false
+      cache:
+        ttl: 5s
+
 # Cliente de Eureka (P2, paso 2.1). eureka-server.yml sobrescribe lo que no aplica al servidor.
 eureka:
   client:

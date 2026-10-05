@@ -7,9 +7,10 @@ spring:
       uri: mongodb://localhost:27017/bank_customer?directConnection=true
 
 bank:
+  # P2 (2.3): el host es el nombre del servicio en Eureka (LoadBalancerConfig de cada servicio).
   clients:
     customer-service:
-      base-url: http://localhost:8081/api/v1
+      base-url: http://customer-service/api/v1
 
 resilience4j:
   circuitbreaker:
