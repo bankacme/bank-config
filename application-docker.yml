@@ -1,0 +1,13 @@
+# Perfil docker (P2, paso 2.7): los servicios corren dentro del docker-compose de bank-platform
+# (SPRING_PROFILES_ACTIVE=docker) y se encuentran por el nombre del servicio en la red de Docker.
+# Precedencia: este archivo vence a application.yml y a <servicio>.yml, pero no a <servicio>-docker.yml.
+
+bank:
+  mongo:
+    # Usado en spring.data.mongodb.uri de cada servicio: mongodb://${bank.mongo.host:localhost}:27017/...
+    host: mongo
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka

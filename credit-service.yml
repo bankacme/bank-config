@@ -4,7 +4,7 @@ server:
 spring:
   data:
     mongodb:
-      uri: mongodb://localhost:27017/bank_credit?directConnection=true
+      uri: mongodb://${bank.mongo.host:localhost}:27017/bank_credit?directConnection=true
 
 bank:
   # P2 (2.3): el host es el nombre del servicio en Eureka (LoadBalancerConfig de cada servicio).
